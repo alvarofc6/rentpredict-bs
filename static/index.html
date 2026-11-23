@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RentPredict Bs — Predicción de Alquileres con Álgebra Lineal</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- KaTeX para renderizar ecuaciones matemáticas reales -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .tab-panel {
+      display: none;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    .tab-panel.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .custom-scroll::-webkit-scrollbar {
+      height: 8px;
+      width: 8px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- ==================== VISTA DE AUTENTICACIÓN ==================== -->
+  <section id="vista-auth" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden">
+      <!-- Encabezado -->
+      <div class="px-7 pt-7 pb-5 text-center border-b border-slate-100">
+        <div class="mx-auto h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-emerald-500 flex items-center justify-center text-white shadow-md mb-3">
+          <i data-lucide="building-2" class="w-6 h-6"></i>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">
+          RentPredict <span class="text-emerald-600">Bs</span>
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">Sistema de Predicción de Alquileres · Ecuación Normal</p>
+
+        <!-- Selector Login / Registro -->
+        <div class="grid grid-cols-2 gap-1.5 bg-slate-100 p-1 rounded-xl mt-5">
+          <button
+            id="btn-modo-login"
+            type="button"
+            class="py-2 text-sm font-semibold rounded-lg bg-white text-indigo-700 shadow-sm transition cursor-pointer"
+          >
+            Iniciar Sesión
+          </button>
+          <button
+            id="btn-modo-registro"
+            type="button"
+            class="py-2 text-sm font-medium rounded-lg text-slate-600 hover:text-slate-900 transition cursor-pointer"
+          >
+            Crear Cuenta
+          </button>
+        </div>
+      </div>
+
+      <!-- Mensaje de error / éxito en autenticación -->
+      <div id="auth-alerta" class="hidden mx-7 mt-5 px-3.5 py-2.5 rounded-xl text-xs font-medium border"></div>
+
+      <!-- Formulario de Login -->
+      <form id="form-login" class="p-7 space-y-4">
+        <div>
+          <label for="login-usuario" class="block text-xs font-semibold text-slate-700 mb-1.5">Usuario</label>
+          <div class="relative">
+            <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              id="login-usuario"
+              type="text"
+              required
+              placeholder="Ej. admin"
+              autocomplete="username"
+              class="w-full pl-10 pr-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="login-contrasena" class="block text-xs font-semibold text-slate-700 mb-1.5">Contraseña</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              id="login-contrasena"
+              type="password"
+              required
+              placeholder="••••••••"
+              autocomplete="current-password"
+              class="w-full pl-10 pr-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-700 hover:to-emerald-700 text-white text-sm font-semibold shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          Ingresar al Sistema
+        </button>
+
+        <!-- Caja de referencia con credencial por defecto -->
+        <div class="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2 text-xs text-slate-600">
+          <div>
+            <p class="font-semibold text-slate-700">Acceso por defecto</p>
+            <p class="font-mono mt-0.5">Usuario: <strong>admin</strong> · Clave: <strong>admin123</strong></p>
+          </div>
+          <button
+            id="btn-rellenar-demo"
+            type="button"
+            class="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold transition cursor-pointer shrink-0"
+          >
+            Usar
+          </button>
+        </div>
+      </form>
+
+      <!-- Formulario de Registro -->
+      <form id="form-registro" class="hidden p-7 space-y-4">
+        <div>
+          <label for="reg-nombre" class="block text-xs font-semibold text-slate-700 mb-1.5">Nombre completo</label>
+          <div class="relative">
+            <i data-lucide="id-card" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              id="reg-nombre"
+              type="text"
+              required
+              minlength="2"
+              placeholder="Ej. Carlos Mamani"
+              class="w-full pl-10 pr-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="reg-usuario" class="block text-xs font-semibold text-slate-700 mb-1.5">Nombre de usuario</label>
+          <div class="relative">
+            <i data-lucide="at-sign" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              id="reg-usuario"
+              type="text"
+              required
+              minlength="3"
+              placeholder="Sin espacios (ej. cmamani)"
+              autocomplete="username"
+              class="w-full pl-10 pr-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="reg-contrasena" class="block text-xs font-semibold text-slate-700 mb-1.5">Contraseña</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              id="reg-contrasena"
+              type="password"
+              required
+              minlength="4"
+              placeholder="Mínimo 4 caracteres"
+              autocomplete="new-password"
+              class="w-full pl-10 pr-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="reg-confirmar" class="block text-xs font-semibold text-slate-700 mb-1.5">Confirmar contraseña</label>
+          <div class="relative">
+            <i data-lucide="shield-check" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              id="reg-confirmar"
+              type="password"
+              required
+              minlength="4"
+              placeholder="Repite tu contraseña"
+              autocomplete="new-password"
+              class="w-full pl-10 pr-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-700 hover:to-emerald-700 text-white text-sm font-semibold shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <i data-lucide="user-plus" class="w-4 h-4"></i>
+          Crear Cuenta e Ingresar
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ==================== VISTA DEL DASHBOARD PRINCIPAL ==================== -->
+  <div id="vista-dashboard" class="hidden min-h-screen flex flex-col">
+
+    <!-- Barra superior fija -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-200 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-600 to-emerald-500 flex items-center justify-center text-white shadow-md">
+            <i data-lucide="building-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+              RentPredict <span class="text-emerald-600">Bs</span>
+            </h1>
+            <p class="text-xs text-slate-500">Regresión Lineal Múltiple · Ecuación Normal</p>
+          </div>
+        </div>
+
+        <!-- Estado del CSV + Botón de carga + Usuario activo -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="hidden md:flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="status-dot"></span>
+            <span class="text-slate-500">Dataset:</span>
+            <strong id="nombre-archivo" class="text-slate-800">Cargando...</strong>
+            <span id="contador-registros" class="ml-1 px-1.5 py-0.5 rounded bg-white text-indigo-700 font-semibold border border-slate-200">0</span>
+          </div>
+
+          <input type="file" id="input-csv" accept=".csv" class="hidden" />
+          <button
+            id="btn-subir-csv"
+            type="button"
+            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white text-xs sm:text-sm font-medium shadow-sm transition cursor-pointer"
+          >
+            <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+            <span>Cargar CSV</span>
+          </button>
+
+          <!-- Indicador de sesión + Cerrar sesión -->
+          <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+            <div class="hidden sm:flex items-center gap-1.5 text-xs text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg">
+              <i data-lucide="user-circle-2" class="w-4 h-4 text-indigo-600"></i>
+              <span id="usuario-activo-nombre" class="font-semibold">--</span>
+            </div>
+            <button
+              id="btn-cerrar-sesion"
+              type="button"
+              title="Cerrar sesión"
+              class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-xs sm:text-sm font-medium border border-slate-200 hover:border-rose-200 transition cursor-pointer"
+            >
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+              <span class="hidden sm:inline">Salir</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navegación por pestañas -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 border-t border-slate-100 overflow-x-auto">
+        <nav class="flex gap-1 py-2" aria-label="Secciones del sistema">
+          <button data-tab="exploracion" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap bg-indigo-50 text-indigo-700">
+            <i data-lucide="database" class="w-4 h-4"></i>
+            1. Exploración de Datos
+          </button>
+          <button data-tab="algebra" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition whitespace-nowrap">
+            <i data-lucide="sigma" class="w-4 h-4"></i>
+            2. Álgebra Lineal
+          </button>
+          <button data-tab="evaluacion" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition whitespace-nowrap">
+            <i data-lucide="line-chart" class="w-4 h-4"></i>
+            3. Evaluación y Gráficas
+          </button>
+          <button data-tab="simulador" class="tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition whitespace-nowrap">
+            <i data-lucide="calculator" class="w-4 h-4"></i>
+            4. Simulador de Alquiler
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Alerta global de estado / errores -->
+    <div id="alerta-global" class="hidden max-w-7xl w-full mx-auto px-4 sm:px-6 mt-4">
+      <div id="alerta-caja" class="rounded-xl px-4 py-3 text-sm font-medium flex items-center justify-between border">
+        <span id="alerta-texto"></span>
+        <button id="cerrar-alerta" class="ml-4 opacity-70 hover:opacity-100">✕</button>
+      </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex-1">
+
+      <!-- ==================== PESTAÑA 1: EXPLORACIÓN DE DATOS ==================== -->
+      <section id="tab-exploracion" class="tab-panel active space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500 text-xs font-medium uppercase">
+              <span>Total de Inmuebles</span>
+              <i data-lucide="home" class="w-4 h-4 text-indigo-500"></i>
+            </div>
+            <p id="kpi-total" class="mt-2 text-2xl font-bold text-slate-900">--</p>
+            <p class="text-xs text-slate-400 mt-1">Registros válidos en el modelo</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500 text-xs font-medium uppercase">
+              <span>Alquiler Promedio</span>
+              <i data-lucide="banknote" class="w-4 h-4 text-emerald-500"></i>
+            </div>
+            <p id="kpi-promedio" class="mt-2 text-2xl font-bold text-emerald-600">--</p>
+            <p class="text-xs text-slate-400 mt-1">Bolivianos por mes (Bs)</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500 text-xs font-medium uppercase">
+              <span>Superficie Promedio</span>
+              <i data-lucide="maximize-2" class="w-4 h-4 text-sky-500"></i>
+            </div>
+            <p id="kpi-superficie" class="mt-2 text-2xl font-bold text-slate-900">--</p>
+            <p class="text-xs text-slate-400 mt-1">Área habitable media</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500 text-xs font-medium uppercase">
+              <span>Rango de Precios</span>
+              <i data-lucide="arrow-up-down" class="w-4 h-4 text-amber-500"></i>
+            </div>
+            <p id="kpi-rango" class="mt-2 text-xl font-bold text-slate-900">--</p>
+            <p class="text-xs text-slate-400 mt-1">Mínimo y máximo registrado</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Datos Registrados del Archivo CSV</h2>
+              <p class="text-xs text-slate-500">Variables de entrada (X₁ a X₄) y variable objetivo (Y)</p>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">Vista desplazable</span>
+          </div>
+          <div class="max-h-80 overflow-auto custom-scroll">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-slate-50 text-slate-600 text-xs uppercase sticky top-0 border-b border-slate-200">
+                <tr>
+                  <th class="px-4 py-3">#</th>
+                  <th class="px-4 py-3">X₁ Superficie (m²)</th>
+                  <th class="px-4 py-3">X₂ Habitaciones</th>
+                  <th class="px-4 py-3">X₃ Antigüedad (años)</th>
+                  <th class="px-4 py-3">X₄ Distancia (km)</th>
+                  <th class="px-4 py-3 text-emerald-700">Y Alquiler (Bs)</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-datos-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100">
+              <h2 class="text-base font-bold text-slate-900">Resumen Estadístico</h2>
+              <p class="text-xs text-slate-500">Medidas de tendencia central y dispersión por variable</p>
+            </div>
+            <div class="overflow-x-auto custom-scroll">
+              <table class="w-full text-xs sm:text-sm text-left">
+                <thead class="bg-slate-50 text-slate-600 text-xs uppercase border-b border-slate-200">
+                  <tr>
+                    <th class="px-4 py-2.5">Variable</th>
+                    <th class="px-3 py-2.5">Media</th>
+                    <th class="px-3 py-2.5">Desv. Est.</th>
+                    <th class="px-3 py-2.5">Mín</th>
+                    <th class="px-3 py-2.5">Mediana</th>
+                    <th class="px-3 py-2.5">Máx</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-estadisticas-body" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100">
+              <h2 class="text-base font-bold text-slate-900">Matriz de Correlación de Pearson</h2>
+              <p class="text-xs text-slate-500">Verde: relación positiva · Rojo: relación negativa</p>
+            </div>
+            <div class="p-4 overflow-x-auto custom-scroll">
+              <table id="tabla-correlacion" class="w-full text-xs text-center border-collapse"></table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== PESTAÑA 2: ÁLGEBRA LINEAL ==================== -->
+      <section id="tab-algebra" class="tab-panel space-y-6">
+        <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 shadow-md">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold">
+                <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+                Solución Analítica Exacta (NumPy)
+              </span>
+              <h2 class="text-xl font-bold mt-2">Estimación de Parámetros mediante Ecuación Normal</h2>
+              <p class="text-slate-300 text-sm mt-1">
+                El vector de coeficientes óptimos que minimiza la suma de errores cuadráticos se calcula directamente con operaciones matriciales.
+              </p>
+            </div>
+            <div class="bg-white/10 backdrop-blur rounded-xl px-6 py-4 text-center border border-white/15">
+              <div id="formula-normal-katex" class="text-xl sm:text-2xl">
+                $$\beta = (X^T X)^{-1} X^T Y$$
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-5 pt-4 border-t border-white/15">
+            <p class="text-xs uppercase tracking-wider text-indigo-300 font-semibold mb-2">Ecuación Predictiva Resultante</p>
+            <div id="ecuacion-final-katex" class="text-base sm:text-lg bg-slate-950/60 border border-white/10 rounded-xl px-4 py-3 overflow-x-auto"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="font-bold text-slate-900">Matriz de Datos <span class="text-indigo-600">X</span></h3>
+                <p class="text-xs text-slate-500">Primeras 6 filas · Se resalta la columna de unos (1) para β₀</p>
+              </div>
+              <span id="dim-X" class="text-xs font-mono font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700">--</span>
+            </div>
+            <div id="preview-X" class="overflow-x-auto custom-scroll"></div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="font-bold text-slate-900">Matriz Transpuesta <span class="text-indigo-600">Xᵀ</span></h3>
+                <p class="text-xs text-slate-500">Primeras 6 columnas · Filas y columnas intercambiadas (<code>X.T</code>)</p>
+              </div>
+              <span id="dim-XT" class="text-xs font-mono font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700">--</span>
+            </div>
+            <div id="preview-XT" class="overflow-x-auto custom-scroll"></div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="font-bold text-slate-900">Vector de Resultados <span class="text-emerald-600">Y</span> y Coeficientes <span class="text-indigo-600">β</span></h3>
+                <p class="text-xs text-slate-500">Alquileres reales observados vs. parámetros calculados</p>
+              </div>
+              <div class="flex gap-2">
+                <span id="dim-Y" class="text-xs font-mono font-semibold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">--</span>
+                <span id="dim-beta" class="text-xs font-mono font-semibold px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700">--</span>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-xs font-semibold text-slate-500 mb-1.5">Vector Y (primeros 6)</p>
+                <div id="preview-Y"></div>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-slate-500 mb-1.5">Vector β (completo)</p>
+                <div id="preview-beta"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="font-bold text-slate-900">Matriz Inversa <span class="text-indigo-600">(Xᵀ · X)⁻¹</span></h3>
+                <p class="text-xs text-slate-500">Calculada con <code>np.linalg.inv(X.T @ X)</code></p>
+              </div>
+              <span id="dim-inv" class="text-xs font-mono font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700">--</span>
+            </div>
+            <div id="preview-inv" class="overflow-x-auto custom-scroll"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <h3 class="text-base font-bold text-slate-900 mb-1">Interpretación de los Coeficientes Obtenidos (β)</h3>
+          <p class="text-xs text-slate-500 mb-4">Impacto marginal de cada característica sobre el precio mensual de alquiler</p>
+          <div id="lista-interpretaciones" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </div>
+      </section>
+
+      <!-- ==================== PESTAÑA 3: EVALUACIÓN Y GRÁFICAS ==================== -->
+      <section id="tab-evaluacion" class="tab-panel space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase text-slate-500">MAE (Error Absoluto Medio)</span>
+              <i data-lucide="target" class="w-4 h-4 text-sky-500"></i>
+            </div>
+            <p id="metrica-mae" class="mt-2 text-3xl font-bold text-slate-900">--</p>
+            <p class="text-xs text-slate-500 mt-1">Diferencia promedio en Bs entre el precio real y el predicho.</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase text-slate-500">RMSE (Raíz del Error Cuadrático)</span>
+              <i data-lucide="activity" class="w-4 h-4 text-amber-500"></i>
+            </div>
+            <p id="metrica-rmse" class="mt-2 text-3xl font-bold text-slate-900">--</p>
+            <p class="text-xs text-slate-500 mt-1">Penaliza más los errores grandes; define el margen ± del simulador.</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase text-slate-500">R² (Coeficiente de Determinación)</span>
+              <span id="badge-calidad" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">--</span>
+            </div>
+            <p id="metrica-r2" class="mt-2 text-3xl font-bold text-emerald-600">--</p>
+            <div class="w-full bg-slate-100 rounded-full h-2.5 mt-2 overflow-hidden">
+              <div id="barra-r2" class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <p id="texto-calidad" class="text-xs text-slate-500 mt-2">--</p>
+          </div>
+        </div>
+
+        <div class="bg-indigo-50/70 border border-indigo-100 rounded-xl px-4 py-3 text-xs text-indigo-900 flex flex-wrap items-center justify-between gap-2">
+          <span class="font-semibold flex items-center gap-1.5">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-indigo-600"></i>
+            Validación cruzada con Scikit-learn (LinearRegression):
+          </span>
+          <span id="validacion-sklearn" class="font-mono">--</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-base font-bold text-slate-900 mb-1">Dispersión: Alquiler Real vs. Predicho</h3>
+            <p class="text-xs text-slate-500 mb-3">Cuanto más cerca estén los puntos de la línea verde discontinua, más precisa es la predicción.</p>
+            <div class="rounded-xl overflow-hidden border border-slate-100 bg-white flex items-center justify-center">
+              <img id="img-real-vs-predicho" alt="Gráfica Real vs Predicho" class="w-full h-auto" />
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-base font-bold text-slate-900 mb-1">Histograma de Errores Residuales</h3>
+            <p class="text-xs text-slate-500 mb-3">Un buen modelo lineal presenta errores centrados simétricamente alrededor de 0 Bs.</p>
+            <div class="rounded-xl overflow-hidden border border-slate-100 bg-white flex items-center justify-center">
+              <img id="img-residuos" alt="Gráfica de Residuos" class="w-full h-auto" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== PESTAÑA 4: SIMULADOR DE ALQUILER ==================== -->
+      <section id="tab-simulador" class="tab-panel">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <form id="form-simulador" class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900">Parámetros del Nuevo Inmueble</h2>
+              <p class="text-xs text-slate-500">Ajusta los controles deslizantes o escribe los valores exactos.</p>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="num-x1" class="text-sm font-semibold text-slate-700">X₁ · Superficie habitable (m²)</label>
+                <input id="num-x1" type="number" min="20" max="350" step="1" value="95" class="w-24 text-right px-2.5 py-1 text-sm font-semibold border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <input id="slider-x1" type="range" min="20" max="350" step="1" value="95" class="w-full accent-indigo-600 cursor-pointer" />
+              <div class="flex justify-between text-[11px] text-slate-400"><span>20 m²</span><span>350 m²</span></div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="num-x2" class="text-sm font-semibold text-slate-700">X₂ · Número de habitaciones</label>
+                <input id="num-x2" type="number" min="1" max="10" step="1" value="3" class="w-24 text-right px-2.5 py-1 text-sm font-semibold border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <input id="slider-x2" type="range" min="1" max="10" step="1" value="3" class="w-full accent-indigo-600 cursor-pointer" />
+              <div class="flex justify-between text-[11px] text-slate-400"><span>1 hab.</span><span>10 hab.</span></div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="num-x3" class="text-sm font-semibold text-slate-700">X₃ · Antigüedad del inmueble (años)</label>
+                <input id="num-x3" type="number" min="0" max="60" step="1" value="8" class="w-24 text-right px-2.5 py-1 text-sm font-semibold border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <input id="slider-x3" type="range" min="0" max="60" step="1" value="8" class="w-full accent-indigo-600 cursor-pointer" />
+              <div class="flex justify-between text-[11px] text-slate-400"><span>0 años (estreno)</span><span>60 años</span></div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="num-x4" class="text-sm font-semibold text-slate-700">X₄ · Distancia al centro / avenida (km)</label>
+                <input id="num-x4" type="number" min="0" max="25" step="0.1" value="3.5" class="w-24 text-right px-2.5 py-1 text-sm font-semibold border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <input id="slider-x4" type="range" min="0" max="25" step="0.1" value="3.5" class="w-full accent-indigo-600 cursor-pointer" />
+              <div class="flex justify-between text-[11px] text-slate-400"><span>0 km (céntrico)</span><span>25 km</span></div>
+            </div>
+
+            <button
+              type="submit"
+              class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-700 hover:to-emerald-700 text-white font-semibold shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              Predecir Alquiler Mensual
+            </button>
+          </form>
+
+          <div class="lg:col-span-7 space-y-5">
+            <div class="bg-gradient-to-br from-indigo-600 via-indigo-700 to-emerald-600 text-white rounded-2xl p-6 shadow-md">
+              <p class="text-xs uppercase tracking-wider text-indigo-100 font-semibold">Precio Mensual Estimado</p>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span id="resultado-precio" class="text-4xl sm:text-5xl font-extrabold tracking-tight">--</span>
+                <span class="text-lg font-medium text-indigo-100">Bs / mes</span>
+              </div>
+              <div class="mt-4 pt-4 border-t border-white/20 flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span class="text-indigo-100">Rango probable (± RMSE):</span>
+                <span id="resultado-rango" class="font-bold bg-white/15 px-3 py-1 rounded-lg">--</span>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <h3 class="text-base font-bold text-slate-900">Desglose de la Fórmula Aplicada</h3>
+              <p class="text-xs text-slate-500 mt-0.5 mb-4">Contribución individual de cada variable ($\beta_i \cdot X_i$) al monto final</p>
+
+              <div id="desglose-lista" class="space-y-2.5"></div>
+
+              <div class="mt-4 pt-4 border-t border-slate-100">
+                <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Cálculo completo</p>
+                <code id="formula-evaluada" class="block text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-700 font-mono overflow-x-auto">--</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400">
+      Sistema Predictivo de Alquileres (Bs) · Desarrollado con Python, FastAPI, NumPy, Pandas, Matplotlib y Tailwind CSS
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
